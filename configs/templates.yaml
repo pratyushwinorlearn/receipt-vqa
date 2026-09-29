@@ -1,0 +1,95 @@
+# Question phrasings per question type.
+# "train" phrasings are used for train/val/test. "heldout" phrasings are NEVER used for training;
+# they build val_heldout.jsonl / test_heldout.jsonl to detect template overfitting.
+# {item} is replaced by the item name for item_* types.
+total:
+  train:
+    - "What is the total amount?"
+    - "How much is the total?"
+    - "What is the grand total on this receipt?"
+    - "What is the total price?"
+    - "How much do I have to pay in total?"
+    - "What is the total bill?"
+  heldout:
+    - "Tell me the total."
+    - "What was the final amount charged?"
+subtotal:
+  train:
+    - "What is the subtotal?"
+    - "How much is the subtotal before tax?"
+    - "What is the subtotal amount on this receipt?"
+    - "What is the sub total?"
+    - "How much was the subtotal?"
+  heldout:
+    - "Subtotal?"
+    - "What do the items add up to before tax?"
+tax:
+  train:
+    - "How much tax was charged?"
+    - "What is the tax amount?"
+    - "What is the tax on this receipt?"
+    - "How much is the tax?"
+    - "What was the tax?"
+  heldout:
+    - "Tell me the tax."
+    - "What amount of tax is included?"
+item_price:
+  train:
+    - "What is the price of {item}?"
+    - "How much does {item} cost?"
+    - "What did {item} cost?"
+    - "What is the price listed for {item}?"
+    - "How much was charged for {item}?"
+  heldout:
+    - "Price of {item}?"
+    - "How much is the {item} on this bill?"
+item_count:
+  train:
+    - "How many {item} were ordered?"
+    - "What is the quantity of {item}?"
+    - "How many units of {item} are on the receipt?"
+    - "What quantity of {item} was bought?"
+    - "How many {item} did the customer get?"
+  heldout:
+    - "Quantity of {item}?"
+    - "How many of {item} are there?"
+num_items:
+  train:
+    - "How many different items are on this receipt?"
+    - "How many distinct items were purchased?"
+    - "How many line items does this receipt have?"
+    - "What is the number of different items?"
+    - "Count the different items on this receipt."
+  heldout:
+    - "How many items in total are listed?"
+    - "Number of line items?"
+item_list:
+  train:
+    - "List all items on the receipt."
+    - "What items were purchased?"
+    - "What are the items on this receipt?"
+    - "Name all the items ordered."
+    - "Which items are listed?"
+  heldout:
+    - "What did the customer order?"
+    - "Give me the list of items."
+payment:
+  train:
+    - "How much was paid in cash?"
+    - "What is the cash amount paid?"
+    - "How much cash did the customer give?"
+    - "What was the cash payment?"
+    - "How much cash was tendered?"
+  heldout:
+    - "Cash paid?"
+    - "What amount was handed over in cash?"
+change:
+  train:
+    - "How much change was given?"
+    - "What is the change amount?"
+    - "How much change is returned?"
+    - "What was the change?"
+    - "How much change did the customer receive?"
+  heldout:
+    - "Change due?"
+    - "What amount was given back?"

@@ -1,0 +1,26 @@
+# env
+.venv/
+.env
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# data and outputs (never commit)
+data/raw/*
+data/processed/*
+outputs/runs/*
+outputs/results/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!outputs/runs/.gitkeep
+!outputs/results/.gitkeep
+
+# tracking
+wandb/
+runs/
+lightning_logs/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

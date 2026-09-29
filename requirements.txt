@@ -1,0 +1,19 @@
+# Minimum versions. After your first successful run, pin exact versions (pip freeze) here.
+torch>=2.2
+transformers>=4.46
+peft>=0.12
+bitsandbytes>=0.43
+accelerate>=0.33
+datasets>=2.20
+huggingface_hub>=0.24
+pillow
+numpy
+pyyaml
+tqdm
+gradio>=4.40
+# dev
+pytest>=8
+ruff>=0.5
+# optional tracking
+# wandb
+# tensorboard

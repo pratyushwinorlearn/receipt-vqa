@@ -1,0 +1,46 @@
+# Fast iteration config: small model, no 4-bit, low resolution, few samples.
+run_name: debug
+seed: 42
+
+model:
+  model_id: HuggingFaceTB/SmolVLM-256M-Instruct
+  quantize_4bit: false
+  dtype: bfloat16
+
+image:
+  longest_edge: 512
+  do_image_splitting: false
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_regex: '.*text_model.*\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)'
+
+data:
+  train: data/processed/train.jsonl
+  val: data/processed/val.jsonl
+  max_train_samples: 200
+  max_val_samples: 50
+
+train:
+  epochs: 1
+  lr: 2.0e-4
+  per_device_batch_size: 2
+  grad_accum: 4
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  lr_scheduler: cosine
+  optim: paged_adamw_8bit
+  gradient_checkpointing: true
+  logging_steps: 5
+  num_workers: 0
+  report_to: none
+  save_total_limit: 1
+
+sample_generation:
+  n: 3
+  max_new_tokens: 32
+
+output:
+  runs_dir: outputs/runs

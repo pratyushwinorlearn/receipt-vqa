@@ -1,0 +1,10 @@
+# Minimal deps for a Hugging Face Space. Install the package from this repo (pip install -e .)
+# or copy src/receiptqa into the Space.
+gradio>=4.40
+torch>=2.2
+transformers>=4.46
+peft>=0.12
+accelerate>=0.33
+pillow
+pyyaml
+# bitsandbytes>=0.43   # only if QUANTIZE_4BIT=1 on a CUDA machine

@@ -1,0 +1,47 @@
+run_name: r16
+seed: 42
+
+model:
+  model_id: HuggingFaceTB/SmolVLM-500M-Instruct
+  quantize_4bit: true
+  dtype: bfloat16
+
+# Resolution is the main quality/VRAM knob. longest_edge = N * 512 (verify on your transformers version).
+image:
+  longest_edge: 1536
+  do_image_splitting: true
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  # regex over module names: adapt the language model only, keep the vision encoder frozen
+  target_regex: '.*text_model.*\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)'
+
+data:
+  train: data/processed/train.jsonl
+  val: data/processed/val.jsonl
+  max_train_samples: null
+  max_val_samples: 200
+
+train:
+  epochs: 3
+  lr: 2.0e-4
+  per_device_batch_size: 2
+  grad_accum: 8
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  lr_scheduler: cosine
+  optim: paged_adamw_8bit
+  gradient_checkpointing: true
+  logging_steps: 10
+  num_workers: 2
+  report_to: none        # none | wandb | tensorboard
+  save_total_limit: 2
+
+sample_generation:
+  n: 5
+  max_new_tokens: 48
+
+output:
+  runs_dir: outputs/runs

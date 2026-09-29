@@ -1,0 +1,19 @@
+model_id: HuggingFaceTB/SmolVLM-500M-Instruct
+adapter_path: null            # or outputs/runs/<run_id>/adapter (CLI --adapter overrides)
+quantize_4bit: true
+dtype: bfloat16
+
+# must match the resolution used in training
+image:
+  longest_edge: 1536
+  do_image_splitting: true
+
+processed_dir: data/processed
+split: val                    # val | test | val_heldout | test_heldout
+modes: [base_plain, base_brief, adapter_plain]   # base_plain=B0, base_brief=B1, adapter_plain=M1
+max_samples: null
+batch_size: 4
+max_new_tokens: 64
+bootstrap_samples: 1000
+seed: 42
+results_dir: outputs/results

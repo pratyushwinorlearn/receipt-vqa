@@ -1,0 +1,11 @@
+dataset_id: naver-clova-ix/cord-v2
+# HF split name -> our split name
+split_map:
+  train: train
+  validation: val
+  test: test
+raw_dir: data/raw/cord
+processed_dir: data/processed
+templates_path: configs/templates.yaml
+seed: 42
+max_qa_per_receipt: 10

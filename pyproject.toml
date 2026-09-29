@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "receiptqa"
+version = "0.1.0"
+description = "QLoRA fine-tuning of a small VLM (SmolVLM) for receipt VQA"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "torch>=2.2",
+    "torchvision",
+    "transformers>=4.46",
+    "peft>=0.12",
+    "bitsandbytes>=0.43",
+    "accelerate>=0.33",
+    "datasets>=2.20",
+    "huggingface_hub>=0.24",
+    "pillow",
+    "numpy",
+    "pyyaml",
+    "tqdm",
+    "num2words",
+    "gradio>=4.40",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5", "jupyter"]
+tracking = ["wandb", "tensorboard"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

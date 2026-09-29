@@ -1,0 +1,106 @@
+Metadata-Version: 2.4
+Name: receiptqa
+Version: 0.1.0
+Summary: QLoRA fine-tuning of a small VLM (SmolVLM) for receipt VQA
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.2
+Requires-Dist: transformers>=4.46
+Requires-Dist: peft>=0.12
+Requires-Dist: bitsandbytes>=0.43
+Requires-Dist: accelerate>=0.33
+Requires-Dist: datasets>=2.20
+Requires-Dist: huggingface_hub>=0.24
+Requires-Dist: pillow
+Requires-Dist: numpy
+Requires-Dist: pyyaml
+Requires-Dist: tqdm
+Requires-Dist: gradio>=4.40
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: ruff>=0.5; extra == "dev"
+Requires-Dist: jupyter; extra == "dev"
+Provides-Extra: tracking
+Requires-Dist: wandb; extra == "tracking"
+Requires-Dist: tensorboard; extra == "tracking"
+
+# ReceiptQA: Domain VQA with a Small VLM + QLoRA
+
+Fine-tune **SmolVLM** with **QLoRA** to answer questions about receipts, entirely on a single 8GB laptop GPU, and measure how much it beats the zero-shot base model.
+
+> Status: 🚧 in progress. All numbers below are placeholders until evaluation is done.
+> Domain is receipts (CORD). It is swappable: see `docs/DATA.md`.
+
+## Demo
+
+![demo](assets/demo.gif)
+
+Live app: `<HF Spaces link>`
+
+## Results
+
+| Model                     | Exact Match | ANLS | Numeric Acc. | Latency (s/q) |
+|---------------------------|-------------|------|--------------|---------------|
+| SmolVLM-500M (zero-shot)  | TBD         | TBD  | TBD          | TBD           |
+| + QLoRA (this repo)       | TBD         | TBD  | TBD          | TBD           |
+
+Test set: 100 held-out receipts (split by receipt, not by question). 95% bootstrap CIs in `docs/EVALUATION.md`.
+
+## Quickstart
+
+```bash
+git clone <repo> && cd receipt-vqa
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+make data      # download CORD, build QA jsonl
+make baseline  # zero-shot eval of the base model
+make train     # QLoRA fine-tune (configs/train_500m_qlora.yaml)
+make eval      # evaluate adapter vs base
+make app       # launch Gradio demo
+```
+
+## Code status
+
+| Part | Status |
+|------|--------|
+| Data builder, splits, metrics, bootstrap, error tagging | Implemented, unit-tested (`make test`) |
+| Collator label masking | Pure-Python part unit-tested; full collator test needs torch |
+| Model loading, QLoRA training, evaluation, Gradio app | Implemented, **not yet run on a GPU** |
+
+First run on your machine: `make test`, `make data`, `make overfit` (loss must go to ~0), then `python scripts/token_stats.py`.
+If the processor or chat template differs on your transformers version, the collator raises a clear error instead of silently mis-masking.
+
+## Hardware
+
+Developed on a laptop GPU with 8GB VRAM (bf16, 4-bit base weights, gradient checkpointing). Runs on any CUDA GPU with >= 8GB.
+
+## Docs
+
+| Doc | What's in it |
+|-----|--------------|
+| [PRD](docs/PRD.md) | What and why, scope, success metrics |
+| [Architecture](docs/ARCHITECTURE.md) | System design, model, memory budget |
+| [File structure](docs/FILE_STRUCTURE.md) | Repo layout and conventions |
+| [Data](docs/DATA.md) | Dataset, QA generation, splits |
+| [Training](docs/TRAINING.md) | Hyperparameters, commands, troubleshooting |
+| [Evaluation](docs/EVALUATION.md) | Metrics, baselines, ablations |
+| [Roadmap](docs/ROADMAP.md) | Milestones and checklist |
+| [Decisions](docs/DECISIONS.md) | Why I chose X over Y |
+| [Learning](docs/LEARNING.md) | Concepts to learn + resources |
+| [Experiment log](docs/EXPERIMENT_LOG.md) | Every run, one row each |
+| [Model card](docs/MODEL_CARD.md) | HF-style model card |
+
+## Limitations
+
+- Trained on ~800 receipts from one dataset. Expect weaker performance on receipts from other regions, layouts, or languages.
+- Not for accounting, tax, or any financial decision-making. Research/demo only.
+
+## License
+
+Code: MIT. Base model and dataset licenses apply separately (see `docs/MODEL_CARD.md`).
+
+## Acknowledgements
+
+SmolVLM (Hugging Face), CORD dataset (Naver Clova), PEFT, bitsandbytes.
