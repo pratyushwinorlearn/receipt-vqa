@@ -12,7 +12,7 @@ const GITHUB_URL =
   "https://github.com/pratyushwinorlearn/receipt-vqa";
 
 const HF_URL =
-  "https://huggingface.co/spaces/shekharr/receiptqa-demo";
+  "https://huggingface.co/spaces/shekharrrr/receiptqa-demo";
 
 const MAX_MB = 8;
 
@@ -1006,7 +1006,75 @@ export default function App() {
             SmolVLM-500M · QLoRA · CORD v2
           </span>
 
-          <div>
+          <div
+            className="footer-profile"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <img
+              src="/profile.jpeg"
+              alt="Pratyush"
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                flexShrink: 0,
+                border: "1px solid rgba(255, 255, 255, 0.16)",
+              }}
+            />
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+              }}
+            >
+              <strong
+                style={{
+                  fontSize: "0.72rem",
+                  lineHeight: 1.1,
+                }}
+              >
+                Shekhar Pratyush
+              </strong>
+
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.48rem",
+                }}
+              >
+                BTech CSE · AI/ML
+              </span>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  marginTop: "1px",
+                }}
+              >
+                <a
+                  href="https://www.linkedin.com/in/shekhar-pratyush-445362327"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  LinkedIn
+                </a>
+
+                <a href="mailto:pratyushqgis22@gmail.com">
+                  Email
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="footer-links">
             <a
               href={GITHUB_URL}
               target="_blank"
