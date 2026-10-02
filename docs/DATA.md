@@ -2,20 +2,20 @@
 
 ## 1. Source
 
-| Dataset | Use | Notes |
-|---------|-----|-------|
-| CORD v2 (`naver-clova-ix/cord-v2` on HF) | Train / val / test | ~800 train, 100 val, 100 test receipts with structured annotations. Verify counts and license on load. |
-| SROIE (optional) | Out-of-distribution test | Different layouts and fields. Only if time allows. |
+| Dataset | Use | Status / notes |
+|---------|-----|----------------|
+| CORD v2 (`naver-clova-ix/cord-v2` on HF) | Train / val / test | Main dataset. Approximately 800 train receipts, 100 validation receipts, and 100 test receipts with structured annotations. |
+| SROIE | Out-of-distribution test | Optional future extension; not part of the reported final results. |
 
-Swapping the domain (charts, plant disease, etc.) only requires rewriting `build_qa.py` and `templates.yaml`.
+The domain can be swapped by rewriting `build_qa.py` and `templates.yaml`.
 
 ## 2. Raw annotation
 
-Each CORD sample has an image and a `ground_truth` JSON string whose parsed content (`gt_parse`) contains fields like `menu` (list of items with name, count, price), `sub_total`, and `total`. **Print a few samples and confirm exact field names before writing the builder.** Some fields are missing on some receipts, so every template must check that its field exists.
+Each CORD sample contains an image and a `ground_truth` JSON string whose parsed content (`gt_parse`) includes fields such as `menu`, `sub_total`, and `total`. Some fields are missing on some receipts, so every QA template checks that its source field exists before creating a question.
 
 ## 3. QA generation
 
-Questions are generated programmatically from the structured annotation, so answers are exact by construction.
+Questions are generated programmatically from structured annotations, so answers are exact by construction.
 
 | Type | Example question | Answer source |
 |------|------------------|---------------|
@@ -30,11 +30,12 @@ Questions are generated programmatically from the structured annotation, so answ
 | `change` | How much change was given? | `total.changeprice` |
 
 Rules:
-- Each type has **5-10 paraphrased phrasings** in `configs/templates.yaml`, sampled randomly.
-- **Reserve 2-3 phrasings per type as a held-out set**, never used in training. This tests whether the model learned the task or the template.
-- Skip a question if its answer field is missing, empty, or ambiguous (e.g. duplicate item names for `item_price`).
-- Answers are short and normalized (see `EVALUATION.md`).
-- Target: ~5-10k training QA pairs total, capped per receipt so no receipt dominates.
+
+- Each type has multiple paraphrased phrasings in `configs/templates.yaml`.
+- Held-out phrasings are reserved and never used in training.
+- A question is skipped when its answer field is missing, empty, or ambiguous.
+- Answers are short and normalized before evaluation.
+- Questions are capped per receipt so one receipt does not dominate training.
 
 ## 4. JSONL format
 
@@ -51,36 +52,60 @@ Rules:
 }
 ```
 
-Files written by `build_qa.py`: `train.jsonl`, `val.jsonl`, `test.jsonl`, `val_heldout.jsonl`, `test_heldout.jsonl` (same questions as val/test, unseen phrasings) and `stats.json`. Ids look like `cord_train_0012_q3` (`_h3` for heldout).
+`build_qa.py` writes:
+
+- `train.jsonl`
+- `val.jsonl`
+- `test.jsonl`
+- `val_heldout.jsonl`
+- `test_heldout.jsonl`
+- `stats.json`
+
+Held-out records use the same receipts as the corresponding validation/test split but use unseen question phrasings.
 
 ## 5. Splits
 
-- **Split by `receipt_id`**, never by question. Two questions about the same receipt must never land in different splits.
-- Keep CORD's official train/val/test as-is. If re-splitting, use a fixed seed from `configs/data.yaml`.
-- `tests/test_splits.py` asserts the receipt-id sets are disjoint.
+- **Split by `receipt_id`, never by question.**
+- All questions from a receipt stay in the same split.
+- CORD's official train/validation/test organization is retained.
+- `tests/test_splits.py` checks that receipt-id sets are disjoint.
 
-## 6. Quality checks (run before training)
+## 6. Dataset statistics
 
-- [ ] Random-sample 50 QA pairs and verify by eye against the image
-- [ ] Answer-length histogram (no giant outliers)
-- [ ] Question-type distribution is reasonably balanced
-- [ ] No duplicate `id`s
-- [ ] No empty answers
-- [ ] Held-out phrasings absent from train
-
-## 7. Contamination check
-
-Read the SmolVLM model card / training-data notes and check whether receipt or document QA data overlapped with its training mix. If unsure, say so in the write-up. The zero-shot baseline is still valid, it just needs an honest caveat.
-
-## 8. Privacy and licensing
-
-- Check the CORD license and cite it in the README and model card.
-- Receipts may contain store names and addresses. Do not add real personal receipts to the repo or the public demo.
-
-## 9. Dataset statistics (fill after build)
+The final reported evaluation sizes are known exactly:
 
 | Split | Receipts | QA pairs | Types covered |
-|-------|----------|----------|---------------|
-| train | TBD | TBD | TBD |
-| val | TBD | TBD | TBD |
-| test | TBD | TBD | TBD |
+|-------|---------:|---------:|---------------|
+| train | ≈800 | ≈6.6k | 9 |
+| val | 100 | 822 | 9 |
+| test | 100 | 809 | 9 |
+
+The successful main training run used 411 optimizer steps per epoch with per-device batch size 2 and gradient accumulation 8, corresponding to approximately 6.6k training QA examples.
+
+Validation and test QA counts come directly from the recorded evaluation runs.
+
+## 7. Quality checks
+
+Automated project checks include:
+
+- unique QA ids
+- non-empty answers
+- split disjointness by receipt
+- held-out phrasing separation
+- question-type generation tests
+- metric tests
+- collator label-masking tests
+
+The repository test suite currently passes **31/31 tests**.
+
+For the benchmark, qualitative error analysis was also run on the final test predictions.
+
+## 8. Contamination check
+
+Potential overlap between CORD and the SmolVLM training mixture has **not been independently verified**. The final write-up should state this as an evaluation caveat rather than assuming either overlap or no overlap.
+
+## 9. Privacy and licensing
+
+- Check and cite the CORD license in the repository and model card.
+- Do not add real personal receipts to the repository.
+- A public demo should include a visible warning not to upload sensitive personal receipts.

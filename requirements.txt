@@ -1,5 +1,7 @@
 # Minimum versions. After your first successful run, pin exact versions (pip freeze) here.
 torch>=2.2
+torchvision
+num2words
 transformers>=4.46
 peft>=0.12
 bitsandbytes>=0.43

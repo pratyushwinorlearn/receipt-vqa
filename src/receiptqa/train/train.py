@@ -60,6 +60,9 @@ def main() -> None:
     val_ds = QADataset(dcfg["val"], dcfg.get("max_val_samples"))
 
     epochs, accum, eval_strategy, save_strategy = tcfg["epochs"], tcfg["grad_accum"], "epoch", "epoch"
+    save_steps = tcfg.get("save_steps")  # checkpoint every N steps so a crash costs minutes, not hours
+    if save_steps:
+        save_strategy = "steps"
     if args.overfit:
         train_ds.rows = train_ds.rows[: args.overfit]
         val_ds = train_ds
@@ -95,6 +98,7 @@ def main() -> None:
         logging_steps=tcfg["logging_steps"],
         eval_strategy=eval_strategy,
         save_strategy=save_strategy,
+        save_steps=save_steps or 500,
         save_total_limit=tcfg["save_total_limit"],
         report_to=tcfg["report_to"],
         remove_unused_columns=False,

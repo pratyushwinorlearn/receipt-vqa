@@ -31,70 +31,89 @@ Five stages, each independently runnable: **data -> train -> evaluate -> analyze
 
 ## 3. Model
 
-- **Base:** SmolVLM-500M-Instruct (primary), SmolVLM-256M-Instruct (fast debugging). Verify exact HF repo ids at setup.
-- **Architecture (high level):** vision encoder -> connector that compresses image tokens -> small language model decoder. Images become a fixed number of visual tokens fed into the LM alongside text.
+- **Base:** SmolVLM-500M-Instruct (primary), SmolVLM-256M-Instruct (fast debugging).
+- **Architecture (high level):** vision encoder -> connector that compresses image tokens -> small language model decoder. Images become visual tokens fed into the LM alongside text.
 - **Quantization (QLoRA):** base weights frozen in 4-bit NF4, double quantization on, bf16 compute dtype.
 - **Adapters:** LoRA on the language model's attention and MLP projections.
 
-| Setting | Starting value |
-|---------|----------------|
+| Setting | Final value |
+|---------|-------------|
 | LoRA rank `r` | 16 |
 | `lora_alpha` | 32 |
 | dropout | 0.05 |
 | target modules | `q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj` (LM only) |
 | Vision encoder | frozen |
-| Connector | frozen (ablation: trainable) |
+| Connector | frozen |
 
-Note: at 256M, full fine-tuning may fit in 8GB anyway. QLoRA is the primary path on 500M and the point of the project.
+At 256M, full fine-tuning may fit in 8GB, so the 256M model was used for fast pipeline debugging. QLoRA is the primary method reported for the 500M model.
 
 ## 4. Training design
 
 - **Input format:** chat template with image + question as the user turn, answer as the assistant turn.
-- **Loss masking:** labels are `-100` everywhere except answer tokens (and the end-of-turn token). Prompt and image tokens never contribute to loss.
+- **Loss masking:** labels are `-100` everywhere except answer tokens and the end-of-turn token. Prompt and image tokens do not contribute to loss.
 - **Padding:** right-pad for training, left-pad for generation.
-- **Memory levers:** batch size 1-2 + gradient accumulation, gradient checkpointing, paged 8-bit AdamW, capped max sequence length, capped image resolution.
+- **Memory levers:** per-device batch size 2, gradient accumulation 8, gradient checkpointing, paged 8-bit AdamW, capped image resolution, and 4-bit base weights.
+- **Final training configuration:** 2 epochs, learning rate `2e-4`, cosine schedule, seed 42, image longest edge 1536 with image splitting enabled.
 
-## 5. Image resolution (key design knob)
+## 5. Image resolution
 
-Receipts have small dense text. Low resolution destroys legibility, high resolution explodes visual token count and VRAM. Plan:
-1. Print the token count per image at each resolution setting (Week 1).
-2. Compare image splitting on/off and longest-edge sizes on a small subset.
-3. Pick the best setting that fits in 8GB and record it in `DECISIONS.md`.
+Receipts have small dense text. Low resolution can hurt legibility, while high resolution increases visual-token count and memory.
 
-## 6. Memory budget (fill from real measurements)
+Token-count analysis recorded approximately:
 
-| Item | Estimate | Measured |
-|------|----------|----------|
-| 4-bit base weights | < 1 GB | TBD |
-| LoRA params + grads + optimizer | < 0.5 GB | TBD |
-| Activations (with checkpointing) | dominant, depends on resolution | TBD |
-| Peak VRAM at chosen config | target < 7.5 GB | TBD |
+- **1536 longest edge:** 484 visual tokens per receipt
+- **2048 longest edge:** 881 visual tokens per receipt
+
+The main run used **1536 with image splitting enabled**. This configuration achieved **84.4% final test EM** with **3.22 GB peak training VRAM**.
+
+A 2048-resolution ablation remains future work; the final test results do not establish that it would improve performance.
+
+## 6. Memory budget
+
+| Item | Planning note | Measured / recorded result |
+|------|---------------|----------------------------|
+| 4-bit base weights | Quantized and frozen | Not separately instrumented |
+| LoRA params + grads + optimizer | Small relative to activations | Not separately instrumented |
+| Activations | Dominant memory component; depends on image/token count | Not separately instrumented |
+| Peak training VRAM | Target < 7.5 GB within an 8GB GPU | **3.22 GB** |
+
+Peak VRAM was measured during the successful `20261002-500m-r16-e2` training run.
 
 ## 7. Inference and comparison
 
-One model load serves both outputs. The fine-tuned answer runs with the adapter enabled, the base answer runs inside `with model.disable_adapter():`. This halves VRAM in the demo and guarantees a fair comparison.
+One model load serves both outputs. The fine-tuned answer runs with the adapter enabled, while the base answer runs with the adapter disabled. This supports a fair base-vs-adapter comparison without loading two complete base models.
+
+Final adapter latency on the evaluation run was approximately **0.41 s/question p50** and **1.05 s/question p95**, with batching used for benchmarking.
 
 ## 8. Evaluation pipeline
 
-`evaluate.py` loads the test JSONL, generates answers greedily (`do_sample=False`, `max_new_tokens` small), normalizes strings, computes metrics, and writes `outputs/results/<run_id>.json`. See `EVALUATION.md`.
+`evaluate.py` loads the selected split, generates answers greedily (`do_sample=False`, short `max_new_tokens`), normalizes strings, computes Exact Match, ANLS, numeric accuracy, per-type metrics, and bootstrap confidence intervals, and writes results under `outputs/results/`.
+
+The final test set was evaluated once after model selection.
 
 ## 9. Configuration and reproducibility
 
-- One YAML per experiment in `configs/`. The exact config is copied into the run's output directory.
-- Seeds set for Python, NumPy, and PyTorch. Dataloader workers seeded.
-- Dependency versions pinned in `requirements.txt` / `pyproject.toml`.
-- Run ids: `YYYYMMDD-<model>-<short-desc>` (e.g. `20260105-500m-r16-res1024`).
+- One YAML per experiment in `configs/`. The exact configuration is copied into the run output.
+- Seeds are set for Python, NumPy, and PyTorch.
+- Dependency versions are recorded in `requirements.txt` / `pyproject.toml`.
+- Run ids use `YYYYMMDD-<model>-<short-desc>`.
+- The final model run is `20261002-500m-r16-e2`.
+- The repository test suite currently passes **31/31 tests**.
 
 ## 10. Deployment
 
-- **Adapter only** is pushed to the HF Hub (small, a few tens of MB), base model is pulled from its own repo.
-- HF Space runs the Gradio app. If the free CPU tier is too slow for 500M, options are: 256M adapter, ZeroGPU, or a recorded demo.
+- **Adapter only** is intended for Hugging Face Hub distribution; the base model is loaded separately.
+- The Gradio app supports base vs fine-tuned comparison.
+- A hosted Space should be treated as a separate deployment step. GPU availability and runtime depend on the hosting tier, so the local app should be verified first.
+- A recorded demo GIF is a fallback if hosted inference is unavailable or too slow.
 
 ## 11. Failure modes
 
-| Failure | Cause | Guard |
-|---------|-------|-------|
-| Model answers with a template phrase instead of reading | Overfit to question templates | Paraphrase set, held-out templates |
-| Wrong digits in totals | Low resolution / tokenization of numbers | Higher resolution, numeric-accuracy metric |
-| Loss looks great, test is bad | Leakage between splits | Split by receipt, test in `tests/` |
-| Garbage generation after training | Wrong padding side or template mismatch | Same chat template in train and inference |
+| Failure | Evidence / cause | Guard |
+|---------|------------------|-------|
+| Model answers with a template phrase instead of reading | Template overfitting is possible with generated questions | Multiple paraphrases + held-out phrasing evaluation |
+| Wrong digits in totals | Difficult receipt text can still be misread | Resolution study + numeric-accuracy metric |
+| Loss looks good but generalization is weak | Training/validation mismatch or leakage | Split by receipt + validation + held-out phrasing |
+| Garbage generation after training | Padding/template mismatch | Same chat template in train and inference |
+| Host-RAM DataLoader crash | Multiple workers increased preprocessing memory pressure on Windows | Final run uses `num_workers: 0` |
+| Item lists are incomplete or contain unrelated text | Final test error analysis identified `wrong_items`, missing/extra items, and copied-line failures | Report per-type performance and failure analysis; item-list remains a known limitation |
