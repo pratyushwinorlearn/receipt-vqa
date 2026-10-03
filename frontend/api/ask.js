@@ -1,9 +1,6 @@
 import { Client, handle_file } from "@gradio/client";
 
-const HF_SPACE =
-  "shekharrrr/receiptqa-demo";
-
-export const maxDuration = 60;
+const HF_SPACE = "shekharrrr/receiptqa-demo";
 
 let clientPromise;
 
@@ -11,9 +8,7 @@ function getClient() {
   const token = process.env.HF_TOKEN;
 
   if (!token) {
-    throw new Error(
-      "HF_TOKEN is not configured on Vercel."
-    );
+    throw new Error("HF_TOKEN is not configured on Vercel.");
   }
 
   if (!clientPromise) {
@@ -28,36 +23,35 @@ function getClient() {
   return clientPromise;
 }
 
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
+export const maxDuration = 60;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function GET() {
+  return Response.json(
+    {
+      ok: true,
+      message: "ReceiptQA API is running.",
+    },
+    {
+      status: 200,
+      headers: corsHeaders,
+    }
+  );
 }
 
-export default async function handler(request) {
-  const headers = corsHeaders();
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
 
-  if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers,
-    });
-  }
-
-  if (request.method !== "POST") {
-    return Response.json(
-      {
-        error: "Method not allowed.",
-      },
-      {
-        status: 405,
-        headers,
-      }
-    );
-  }
-
+export async function POST(request) {
   try {
     const formData = await request.formData();
 
@@ -67,12 +61,11 @@ export default async function handler(request) {
     if (!(image instanceof File)) {
       return Response.json(
         {
-          error:
-            "Please upload a receipt image.",
+          error: "Please upload a receipt image.",
         },
         {
           status: 400,
-          headers,
+          headers: corsHeaders,
         }
       );
     }
@@ -83,25 +76,21 @@ export default async function handler(request) {
     ) {
       return Response.json(
         {
-          error:
-            "Please enter a question.",
+          error: "Please enter a question.",
         },
         {
           status: 400,
-          headers,
+          headers: corsHeaders,
         }
       );
     }
 
     const client = await getClient();
 
-    const result = await client.predict(
-      "/ask",
-      {
-        image: handle_file(image),
-        question: question.trim(),
-      }
-    );
+    const result = await client.predict("/ask", {
+      image: handle_file(image),
+      question: question.trim(),
+    });
 
     const answer = result?.data?.[0];
 
@@ -120,11 +109,14 @@ export default async function handler(request) {
       },
       {
         status: 200,
-        headers,
+        headers: corsHeaders,
       }
     );
   } catch (error) {
-    console.error("ReceiptQA inference error:", error);
+    console.error(
+      "ReceiptQA inference error:",
+      error
+    );
 
     return Response.json(
       {
@@ -134,7 +126,7 @@ export default async function handler(request) {
       },
       {
         status: 500,
-        headers,
+        headers: corsHeaders,
       }
     );
   }
