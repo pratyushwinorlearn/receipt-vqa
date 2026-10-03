@@ -1,68 +1,46 @@
-import { Client, handle_file } from "@gradio/client";
-
 const API_URL =
-  import.meta.env.VITE_API_URL?.trim();
+  import.meta.env.VITE_API_URL?.trim() ||
+  "/api/ask";
 
-const API_NAME =
-  import.meta.env.VITE_API_NAME ||
-  "/ask";
+export const apiConfigured = Boolean(API_URL);
 
-let clientPromise;
-
-export const apiConfigured =
-  Boolean(API_URL);
-
-function getClient() {
-  if (!API_URL) {
-    throw new Error(
-      "API URL is not configured. Set VITE_API_URL and rebuild."
-    );
-  }
-
-  if (!clientPromise) {
-    clientPromise =
-      Client.connect(API_URL).catch(
-        (error) => {
-          clientPromise = undefined;
-          throw error;
-        }
-      );
-  }
-
-  return clientPromise;
-}
-
-export async function askReceipt(
-  file,
-  question
-) {
+export async function askReceipt(file, question) {
   if (!file) {
-    throw new Error(
-      "No receipt image was provided."
-    );
+    throw new Error("No receipt image was provided.");
   }
 
   if (!question?.trim()) {
+    throw new Error("Please enter a question.");
+  }
+
+  const formData = new FormData();
+
+  formData.append("image", file);
+  formData.append("question", question.trim());
+
+  const response = await fetch(API_URL, {
+    method: "POST",
+    body: formData,
+  });
+
+  let payload;
+
+  try {
+    payload = await response.json();
+  } catch {
     throw new Error(
-      "Please enter a question."
+      `Inference server returned HTTP ${response.status}.`
     );
   }
 
-  const client =
-    await getClient();
-
-  const result =
-    await client.predict(
-      API_NAME,
-      {
-        image: handle_file(file),
-        question:
-          question.trim(),
-      }
+  if (!response.ok) {
+    throw new Error(
+      payload?.error ||
+        `Inference server returned HTTP ${response.status}.`
     );
+  }
 
-  const answer =
-    result?.data?.[0];
+  const answer = payload?.answer;
 
   if (
     typeof answer !== "string" ||
